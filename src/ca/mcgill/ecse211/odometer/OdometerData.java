@@ -17,7 +17,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class OdometerData {
 
   // Position parameters
-  private volatile double x; // x-axis position
+  private volatile double x; // x-axis position (VOLATE: CAN BE READ BY ANY THREAD)
   private volatile double y; // y-axis position
   private volatile double theta; // Head angle
 
@@ -72,7 +72,6 @@ public class OdometerData {
     }
 
   }
-
   /**
    * Return the Odomometer data.
    * <p>
