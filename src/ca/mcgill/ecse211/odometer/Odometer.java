@@ -110,7 +110,7 @@ public class Odometer extends OdometerData implements Runnable {
     while (true) {
       updateStart = System.currentTimeMillis();
       
-      lastTachoL= leftMotor.getTachoCount();
+      lastTachoL = leftMotor.getTachoCount();
       lastTachoR = rightMotor.getTachoCount();
 
       // TODO Calculate new robot position based on tachometer counts
