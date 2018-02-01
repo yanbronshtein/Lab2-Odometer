@@ -1,54 +1,43 @@
 /*
  * OdometryCorrection.java
  */
-package ca.mcgill.ecse211.odometer;
-import java.awt.Point;
 
-import ca.mcgill.ecse211.lab2.Lab2;
+/* 
+ * Name: Yaniv Bronshtein 260618099	Varad Kothari 260631831
+ * 
+ * */
+package ca.mcgill.ecse211.odometer;
+
 import lejos.hardware.Sound;
 import lejos.hardware.sensor.EV3ColorSensor;
 import lejos.robotics.SampleProvider;
 
-
 public class OdometryCorrection implements Runnable {
-	private OdometerData odoData;
 	private static final long CORRECTION_PERIOD = 10;
 	private Odometer odometer;
-	//	private EV3ColorSensor lightSensor = Lab2.lightSensor;
-	private EV3ColorSensor lightSensor;
+	private static EV3ColorSensor lightSensor;
+	private static SampleProvider sensorMode;
 
-	private SampleProvider csColor;
-	private double xprev = 0; private double yprev = 0; 
-	private double xnow,ynow,tnow; 
-	private double squareLength= 30.48;
-	// stores the length of the vehicle to the actual sensor
-	private double wheelToSensorLength = 3.5;
+	private double TILEDIMENSION = 30.48; //constant measured dimension of tile square in cm
+	private double[] odoData; //Store XYT as outlined in OdometerData.java
 
-	//stores the direction the vehicle is traveling (north,south,east,west,rotating)
-	private String direction;
+//	private double OFFSET = 5.2; //distance from wheel to sensor
+	private double OFFSET = 4.7; //distance from wheel to sensor
+	float[] sensorData; //data from light sensor
+	
 
-	//stores what the last line was in its current interval (0,1,2)
-	private int lastLine = 0;
-
-	//stores the coordinate of the starting point (relative to the overall board)
-	//sets to zero initially but updates as sensor reads line to determine location
-	private double startingPointX = 0.0;
-	private double startingPointY = 0.0;
-
-	private double currentConstantX = 0.0;
-	private double currentConstantY = 0.0;
 	/**
 	 * This is the default class constructor. An existing instance of the odometer is used. This is to
 	 * ensure thread safety.
 	 * 
 	 * @throws OdometerExceptions
 	 */
-	public OdometryCorrection(Odometer odometer, EV3ColorSensor lightSensor) throws OdometerExceptions {
+	public OdometryCorrection(Odometer odometer,EV3ColorSensor lightSensor) throws OdometerExceptions {
 
-		this.odometer = Odometer.getOdometer();
-		this.lightSensor = lightSensor;
-		odoData = OdometerData.getOdometerData(); // Allows access to x,y,z
-		odoData.setXYT(0, 0, 0);
+		this.odometer = Odometer.getOdometer(); 
+		OdometryCorrection.lightSensor = lightSensor;
+		OdometryCorrection.sensorMode = lightSensor.getRedMode();
+		this.sensorData = new float[lightSensor.sampleSize()];  
 	}
 
 	/**
@@ -59,37 +48,63 @@ public class OdometryCorrection implements Runnable {
 	// run method (required for Thread)
 	public void run() {
 		long correctionStart, correctionEnd;
-		double [] temp = odoData.getXYT();
+		int blackLineCountX, blackLineCountY; 
+		double x,y,theta;
+		
 
+		
 		while (true) {
 			correctionStart = System.currentTimeMillis();
+			
 
-			// get the current values from our odometer
-			xnow = temp[0];
-			ynow = temp[1];
-			tnow = temp[2];
+			// read value from light sensor and determine if it is a black line or not
+			sensorMode.fetchSample(sensorData, 0); //Store elements of sample in arr.offset 0
 
-			//determine direction the vehicle is moving
-			determineVehicleDirection();
-			//correct values based on odometer readings
-			correctOnOdometerReadings();
-			//correct values based on sensor readings 
-			if(lightSensor.getColorID() == 13){
+			blackLineCountX = 0; //re-initialize to 0 
+			blackLineCountY = 0; //with each pass through while loop
+
+			
+
+
+			odoData = odometer.getXYT();
+			
+			x = odoData[0]; //before I was getting null pointers because odoData is empty before while loop
+			y = odoData[1];
+			theta = odoData[2];
+
+			//Hit black line if sensor reading 0.20 +/- 2
+			if (sensorData[0] < 0.22) {
 				Sound.beep();
-				correctOnSensorReadings();
+				//Going North
+				/* Got rid of deadzones */
+//				if ((theta > 0 && theta <= 5) || theta >355) {
+				if ((theta > 0 && theta <= 45) || theta >315) {
+					odometer.setY(blackLineCountY * TILEDIMENSION - OFFSET); 
+					blackLineCountY++;
+				}
+				//Going east
+//				if(theta <= 95 && theta > 85 ) {
+				if(theta <= 135 && theta > 45 ) {
+					odometer.setX(blackLineCountX * TILEDIMENSION - OFFSET);
+					blackLineCountX++;
+				}
+				//Going south
+//				if (theta <= 185 && theta > 175) {
+				if (theta <= 225 && theta > 135) {
+					odometer.setY(blackLineCountY * TILEDIMENSION + OFFSET);
+					blackLineCountY--;
+				}
+				//Going west
+//				if (theta <=275 && theta >265) {
+				if (theta <=315 && theta >225) {
+					odometer.setX(blackLineCountX*TILEDIMENSION + OFFSET);
+					blackLineCountX--;
+				}
+
+
 			}
 
-			//update the prev value to current values
-			xprev=xnow;
-			yprev=ynow;
-
-			// TODO Trigger correction (When do I have information to correct?)
-
-			// TODO Calculate new (accurate) robot position
-
-			// TODO Update odometer with new calculated (and more accurate) vales
-
-			odometer.setXYT(0.3, 19.23, 5.0);
+			//odometer.setXYT(0.3, 19.23, 5.0); //We did not use this because we prefered to set them individually
 
 			// this ensure the odometry correction occurs only once every period
 			correctionEnd = System.currentTimeMillis();
@@ -101,155 +116,5 @@ public class OdometryCorrection implements Runnable {
 				}
 			}
 		}
-	}
-
-	private void determineVehicleDirection() {
-		if ( (Math.abs(xnow-xprev) < 0.1) && (Math.abs(ynow-yprev) < 0.1 )) {
-			direction = "rotating";
-		} else {
-			direction = "undefined";
-			if ( tnow > -10 && tnow < 10 ) {
-				direction = "north";
-			} 
-			if ( tnow > 80 && tnow < 110 ) {
-				direction = "east";
-			} 
-			if ( tnow > 170 && tnow < 190 ) {
-				direction = "south";
-			} 
-			if ( tnow > 260 && tnow < 280 ) {		
-				direction = "west";
-			} 
-		}
-	}
-
-	/**
-	 * A method to correct theta values when going straight and XY values when turning
-	 */
-	private void correctOnOdometerReadings() {
-		if ( direction.equals("rotating") ) {
-			//robot is rotating, values of x and y should stay the same
-			xnow=xprev;
-			ynow=yprev;
-			odometer.setX(xnow);
-			odometer.setY(ynow);
-		} else {
-			// correct it to one of the 4 possible angles for when robot is not rotating 
-			if ( direction.equals("north") ) {
-				tnow=0;
-				odometer.setTheta(0);
-			} 
-			if ( direction.equals("east") ) {
-				tnow=90;
-				odometer.setTheta(Math.PI/2);
-			} 
-			if ( direction.equals("south") ) {
-				tnow=180;
-				odometer.setTheta(Math.PI);
-			}
-			if ( direction.equals("west") ) {		
-				tnow=270;
-				odometer.setTheta(3*Math.PI/2);
-			}
-		}
-	}
-
-	/**
-	 * A method to correct our XY values based on sensor readings
-	 */
-	private void correctOnSensorReadings() {
-		//call proper sensor correction method depending on the direction the vehicle is moving
-		if (tnow > -10 && tnow < 10) {
-			sensorCorrectionNorth();
-		} 
-		if (tnow > 80 && tnow < 110 ) {
-			sensorCorrectionEast();
-		}
-		if ( tnow > 170 && tnow < 190 ) {
-			sensorCorrectionSouth(); 
-		} 
-		if ( tnow > 260 && tnow < 280 ) {		
-			sensorCorrectionWest();
-		} 
-		odometer.setX(xnow);
-		odometer.setY(ynow);
-	}
-
-	/**
-	 * A method sensor corrections while vehicle is moving north
-	 */
-	private void sensorCorrectionNorth() {
-		if (lastLine == 0) {
-			startingPointY = squareLength-ynow-wheelToSensorLength;
-		} else if (lastLine == 1) {
-			ynow = 2*squareLength - startingPointY - wheelToSensorLength; 
-		} else if (lastLine == 2) {
-			ynow = 3*squareLength - startingPointY - wheelToSensorLength;
-		}
-		//update value of last line
-		if(lastLine < 2)
-			lastLine++;
-		else
-			lastLine = 0;
-	}	
-
-	/**
-	 * A method sensor corrections while vehicle is moving east
-	 */
-	private void sensorCorrectionEast() {
-		if (lastLine == 0) {
-			currentConstantY = ynow;
-			startingPointX = squareLength-xnow-wheelToSensorLength;
-		} else if (lastLine == 1) {
-			xnow = 2*squareLength - startingPointX - wheelToSensorLength; 
-		} else if (lastLine == 2) {
-			xnow = 3*squareLength - startingPointX - wheelToSensorLength; 
-		}
-		//update value of last line
-		if(lastLine < 2)
-			lastLine++;
-		else
-			lastLine = 0;
-	}
-
-
-	/**
-	 * A method sensor corrections while vehicle is moving south
-	 */
-	private void sensorCorrectionSouth() {
-		if (lastLine == 0) {
-			currentConstantX = xnow;
-			ynow = 3*squareLength - startingPointY- wheelToSensorLength;
-		} else if (lastLine == 1) {
-			ynow = 2*squareLength - startingPointY - wheelToSensorLength; 
-		} else if (lastLine == 2) {
-			ynow = squareLength - startingPointY - wheelToSensorLength;
-		}
-		//update value of last line
-		if(lastLine < 2)
-			lastLine++;
-		else
-			lastLine = 0;
-	}
-
-
-	/**
-	 * A method sensor corrections while vehicle is moving west
-	 */
-	private void sensorCorrectionWest() {
-		if (lastLine == 0) {
-			currentConstantY = ynow;
-			xnow = 3*squareLength - startingPointX - wheelToSensorLength; 
-		} else if (lastLine == 1) {
-			xnow = 2*squareLength - startingPointX - wheelToSensorLength; 
-		} else if (lastLine == 2) {
-			xnow = squareLength - startingPointX - wheelToSensorLength;
-		}
-		//update value of last line
-
-		if(lastLine < 2)
-			lastLine++;
-		else
-			lastLine = 0;
 	}
 }

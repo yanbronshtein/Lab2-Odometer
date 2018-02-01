@@ -21,11 +21,18 @@ public class Lab2 {
 	public static final EV3ColorSensor lightSensor = new EV3ColorSensor(LocalEV3.get().getPort("S1"));
 
 	private static final TextLCD lcd = LocalEV3.get().getTextLCD();
-	//  public static final double WHEEL_RAD = 2.2;
-	//  public static final double TRACK = 17.0;
-	public static final double WHEEL_RAD = 2.34;
-	public static final double TRACK = 16.2;
+	public static final double WHEEL_RAD = 2.1; //affects how far I go
 
+	
+
+//	public static final double TRACK = 17.3; //How much I turn (Turn too long)
+	
+//	public static final double TRACK = 10; //How much I turn (Turn too short)
+	
+//	public static final double TRACK = 15; //How much I turn. First turn is really close. errors add up
+	
+//	public static final double TRACK = 14.5; //First run is pretty much straight but skews towards the middle more 
+	public static final double TRACK = 14.3; //How much I turn
 	public static void main(String[] args) throws OdometerExceptions {
 
 		int buttonChoice;
