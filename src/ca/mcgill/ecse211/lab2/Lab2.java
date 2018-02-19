@@ -14,7 +14,7 @@ public class Lab2 {
 	private static final EV3LargeRegulatedMotor leftMotor =
 			new EV3LargeRegulatedMotor(LocalEV3.get().getPort("A"));
 	private static final EV3LargeRegulatedMotor rightMotor =
-			new EV3LargeRegulatedMotor(LocalEV3.get().getPort("B"));
+			new EV3LargeRegulatedMotor(LocalEV3.get().getPort("D"));
 
 
 	// Light sensor connected to input S1
@@ -25,14 +25,14 @@ public class Lab2 {
 
 	
 
-//	public static final double TRACK = 17.3; //How much I turn (Turn too long)
+//	public static final double TRACK = 17.3; //Original Track Value (Turn too long. Actually falls off the board)
 	
-//	public static final double TRACK = 10; //How much I turn (Turn too short)
+//	public static final double TRACK = 10; // Turn too short
 	
-//	public static final double TRACK = 15; //How much I turn. First turn is really close. errors add up
+//	public static final double TRACK = 15; //First turn is really close. errors add up
 	
 //	public static final double TRACK = 14.5; //First run is pretty much straight but skews towards the middle more 
-	public static final double TRACK = 14.3; //How much I turn
+	public static final double TRACK = 14.3; //Final 
 	public static void main(String[] args) throws OdometerExceptions {
 
 		int buttonChoice;

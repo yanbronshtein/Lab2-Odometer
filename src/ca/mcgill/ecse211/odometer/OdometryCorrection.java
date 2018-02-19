@@ -77,25 +77,21 @@ public class OdometryCorrection implements Runnable {
 				Sound.beep();
 				//Going North
 				/* Got rid of deadzones */
-//				if ((theta > 0 && theta <= 5) || theta >355) {
 				if ((theta > 0 && theta <= 45) || theta >315) {
 					odometer.setY(blackLineCountY * TILEDIMENSION - OFFSET); 
 					blackLineCountY++;
 				}
 				//Going east
-//				if(theta <= 95 && theta > 85 ) {
 				if(theta <= 135 && theta > 45 ) {
 					odometer.setX(blackLineCountX * TILEDIMENSION - OFFSET);
 					blackLineCountX++;
 				}
 				//Going south
-//				if (theta <= 185 && theta > 175) {
 				if (theta <= 225 && theta > 135) {
 					odometer.setY(blackLineCountY * TILEDIMENSION + OFFSET);
 					blackLineCountY--;
 				}
 				//Going west
-//				if (theta <=275 && theta >265) {
 				if (theta <=315 && theta >225) {
 					odometer.setX(blackLineCountX*TILEDIMENSION + OFFSET);
 					blackLineCountX--;
